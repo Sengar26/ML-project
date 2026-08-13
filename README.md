@@ -39,7 +39,17 @@ is the point of the project — so the file set is verified before anything is b
 The dataset requires registration at
 [dunnhumby Source Files](https://www.dunnhumby.com/source-files/); mirrors exist on
 [Kaggle](https://www.kaggle.com/datasets/frtgnn/dunnhumby-the-complete-journey) and
-[Mendeley Data](https://data.mendeley.com/datasets/7myy93ym6k/1).
+[Mendeley Data](https://data.mendeley.com/datasets/7myy93ym6k/1) (DOI
+`10.17632/7myy93ym6k.1`, v1 dated 2026-04-28). The Mendeley copy is *described as*
+including `causal_data` and does not require registration; that description has not been
+checked against the archive itself, and stays hedged here until `src/verify_dataset.py`
+confirms it.
+
+**Provenance: not yet downloaded.** When the files land, this line records which source
+they came from and its version or download date. If the archive came from a third-party
+mirror rather than dunnhumby directly, that is worth stating plainly: a mirror of a
+registration-walled dataset carries no guarantee of being byte-identical to the original
+release, which bears on whether results here are reproducible against the canonical files.
 
 Fallback if the download is unobtainable: UCI Online Retail II — which has neither a promo
 calendar nor a store dimension, so Phase 4 would lose both the promo-window restriction and

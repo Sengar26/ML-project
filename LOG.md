@@ -33,7 +33,13 @@ What web search does support, second-hand and unverified against the files thems
 - dunnhumby Source Files still lists The Complete Journey.
 - A Kaggle mirror exists (`frtgnn/dunnhumby-the-complete-journey`), described as eight CSVs.
 - A Mendeley Data mirror exists (DOI `10.17632/7myy93ym6k.1`, v1 dated 2026-04-28),
-  open-access and without the registration step, described as including `causal_data`.
+  open-access and without the registration step, **described as** including `causal_data`.
+
+> **Standing hedge — do not let this harden.** "Described as including `causal_data`" is a
+> reading of a dataset description, not an inspection of the archive. It stays hedged in
+> every file in this repo until `src/verify_dataset.py` confirms it against the actual
+> files. If a later draft of `README.md` or this log states that the mirror contains the
+> promo calendar without that confirmation, the hedge has been lost and should be restored.
 
 Three claims remain unverified and each is load-bearing:
 
@@ -48,6 +54,13 @@ Three claims remain unverified and each is load-bearing:
 That output, not this note, is what closes Phase 0. If the gate fails on point 1 or 2, stop
 and re-read Phase 0 of the build plan before writing any more code — the fallback dataset
 changes the shape of the project rather than just its inputs.
+
+**Provenance, to be recorded when the files land:** which of the three sources the archive
+actually came from — dunnhumby direct, Kaggle mirror, or Mendeley mirror — and its version
+or download date. A third-party mirror of a registration-walled dataset is a reasonable
+interview question, and the answer should be on record rather than reconstructed later.
+
+Source used: _not yet downloaded_
 
 ### Environment
 
@@ -66,11 +79,29 @@ risk to resolve later.
 
 ### Scaffold
 
-Repo structure created per the build plan; `data/` gitignored. `src/verify_dataset.py`
-written and exercised against a synthetic Dunnhumby-shaped fixture — pass path returns 0,
-and the failure path (fixture with `causal_data.csv` removed and 100 `RETAIL_DISC` values
-sign-flipped) returns 1 and names both problems. The script has never been run against the
-real files.
+Repo structure created per the build plan; `data/` gitignored.
+
+`src/verify_dataset.py` written, then hardened so a schema surprise cannot be mistaken for a
+gate failure. It separates two severities:
+
+- **Hard gates** (exit 1): `causal_data` present with promo flags at product × store × week;
+  `STORE_ID` present on `transaction_data`; discount signs consistent with the base-price
+  formula. On failure it names the gate and what it implies for the shape of Phase 4.
+- **Soft warnings** (exit 0, reported): column casing, renames, dtypes, missing non-gating
+  files, duplicate keys. Column matching is case-, whitespace- and dtype-insensitive with a
+  substring fallback, and every file's found columns are printed next to the expected ones
+  on both the pass and the fail path.
+
+Exercised against four synthetic fixtures — the script has **never been run against the real
+files**, so the fixtures encode an assumption about Dunnhumby's schema rather than knowledge
+of it. That is precisely why naming and dtype mismatches warn instead of failing.
+
+| Fixture | Expected | Exit |
+|---|---|---|
+| Clean, documented schema | pass | 0 |
+| Lowercase columns, ` week_no` with a leading space, `display` renamed `DISPLAY_FLAG`, character-coded flags | pass with warnings | 0 |
+| `causal_data.csv` removed, 100 `RETAIL_DISC` values sign-flipped | hard fail, both named | 1 |
+| `causal_data.csv` removed and `STORE_ID` dropped | hard fail, both gates named with Phase 4 implications | 1 |
 
 ---
 
