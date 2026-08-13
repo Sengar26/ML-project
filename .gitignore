@@ -1,0 +1,23 @@
+# Data is never committed. The directory structure is kept via .gitkeep files
+# so the layout is self-documenting; everything inside is ignored.
+data/**
+!data/raw/
+!data/interim/
+!data/raw/.gitkeep
+!data/interim/.gitkeep
+
+# Environment
+.venv/
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Notebook outputs are noisy in diffs; strip before committing if it matters
+# (not enforced — no pre-commit hook in scope for this project)
+
+# OS
+.DS_Store
