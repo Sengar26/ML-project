@@ -105,6 +105,86 @@ of it. That is precisely why naming and dtype mismatches warn instead of failing
 
 ---
 
+## 2026-08-13 — Phases 1–7 built; pipeline complete, unrun on real data
+
+Built every phase's code and validated it against a simulator with planted parameters,
+because the real files still cannot be downloaded here. **No result in this section is a
+finding.** They are recovery checks: the question they answer is "does the machinery return
+the parameters that were planted", not "what is the elasticity of grocery demand".
+
+Nothing below is eligible for a resume bullet. The results sections of `README.md` remain
+empty, and the tier reached is still **none**.
+
+### What exists now
+
+| Phase | Module | State |
+|---|---|---|
+| 0 | `verify_dataset.py` | gate, hardened earlier |
+| 1 | `sql/01_build_panel.sql` + `build_panel.py` | panel with per-filter cost accounting |
+| 2 | `descriptives.py` | 3 charts + can-the-data-answer-it diagnostics |
+| 3–4 | `elasticity.py` | five-row ladder, IV, first-stage F, ladder chart |
+| 4b | `sku_elasticity.py` | per-SKU 2SLS by regime, EB shrinkage, weak-IV screen |
+| 5 | `gbm.py` | LightGBM vs regression, time split, SHAP |
+| 6 | `decision.py` | Lerner-optimal price, SKU buckets, margin curves |
+| 7 | `holdout.py` | observational check on the final weeks |
+| — | `simulate.py`, `run_all.py`, `tests/` | test harness and orchestration |
+
+### Recovery checks on simulated data (NOT findings)
+
+200 products x 15 stores x 104 weeks, 446,778 simulated transaction rows -> 224,335 panel rows.
+
+| Check | Planted | Recovered |
+|---|---|---|
+| Pooled IV, non-promo weeks | −1.975 (mean) | −1.957 (SE 0.038) |
+| Pooled IV, promo weeks | −2.863 (mean) | −2.867 (SE 0.046) |
+| Per-SKU elasticity, non-promo | — | r = 0.96 with planted per-SKU truth |
+| Per-SKU elasticity, promo | — | r = 0.83 |
+| Inelastic SKUs identified | 7 | 8 flagged |
+| Direction of OLS bias | toward zero | FE −1.618 vs IV −2.127 ✓ |
+
+The first-stage F values on simulated data run into the thousands. That is an artefact of a
+DGP with a strong common cost component and no measurement error in the instrument. **Do
+not read it as an expectation for the real data** — on real prices the F is the number to
+watch, and under ~10 it gets disclosed.
+
+### Three bugs the tests caught, worth remembering
+
+1. **Per-SKU IV with week dummies is silently invalid.** Inside one product a week dummy is
+   a product-week dummy, and the leave-one-out instrument equals `(total − own)/(n−1)`
+   within a product-week — so absorbing the product-week mean leaves a mechanical negative
+   multiple of own price. The first stage goes to F ≈ 15,000 while the estimate goes to
+   *+0.2* against a truth of −2.0. The broken version looks healthier on the usual
+   diagnostic than the correct one. Fixed with store + coarse period dummies; a test now
+   asserts on accuracy rather than on F.
+2. **Pooled elasticity outside the regime range.** With elasticity varying by regime and no
+   promo control, the pooled IV returned −1.47 while both regime estimates were −2.0 and
+   −3.0. A single slope forced through two price clouds is a weighted artefact, not an
+   average. Fixed by controlling for the promo flag, and `elasticity.py` now prints a
+   warning whenever the pooled estimate falls outside the regime range.
+3. **The GBM cannot extrapolate in time.** With raw `WEEK_NO` as a feature every holdout
+   week fell into the last training leaf and the GBM lost to the regression. Replaced with
+   week-of-year, which recurs inside the training window. GBM now wins by 5–18% RMSE across
+   seeds — though on small panels the regression still wins, and the test asserts the
+   comparison is well formed rather than asserting a winner.
+
+### Tests
+
+`uv run python -m pytest tests/ -q` — **30 passed**. Panel invariants, gate pass/fail/
+tolerate-renamed-columns, bias direction, parameter recovery, shrinkage behaviour, Lerner
+closed form against a brute-force sweep, interior optimum, no time leakage, full pipeline
+end to end.
+
+### Open, for when the real data lands
+
+- Filters cost nothing on simulated data (every product has full history and price
+  variation). The real survivor counts are the number that matters and is still unknown.
+- The 30% gross-margin assumption drives the Phase 6 buckets hard — at 20% vs 40% the
+  counts move from 199/0/0/1 to a very different split. Whether that is a real finding or
+  an artefact of a flat assumption cannot be settled without category-level margin data.
+- Phase 4's identification argument and Phase 6's reading are unwritten, by design.
+
+---
+
 ## Interview answers
 
 Drafted as the phases produce the evidence for them, not the night before. Empty is honest;
